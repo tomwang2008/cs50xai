@@ -5,6 +5,7 @@ class Node():
         self.state = state
         self.parent = parent
         self.action = action
+        self.steps = 0
 
 
 class StackFrontier():
@@ -38,6 +39,49 @@ class QueueFrontier(StackFrontier):
             node = self.frontier[0]
             self.frontier = self.frontier[1:]
             return node
+
+class GreedFrontier(StackFrontier):
+    def __init__(self,goal):
+        super().__init__()
+        self.goal = goal
+
+    def heuristic(self, state):
+        """Calculates the Manhattan distance from the current state to the goal."""
+        return abs(state[0] - self.goal[0]) + abs(state[1] - self.goal[1])
+    def remove(self):
+        if self.empty():
+            raise Exception("empty frontier")
+        else:
+            min_node = min(self.frontier, key=lambda node: self.heuristic(node.state))
+            self.frontier.remove(min_node)
+            return min_node
+            
+class AstarsFrontier(GreedFrontier):
+    def __init__(self,goal):
+        super().__init__(goal)
+    
+    def cal_mahattan(self, node):
+        if node.parent is None:
+            return self.heuristic(node.state)
+        return self.heuristic(node.state) + node.steps
+
+    def add(self, node):
+        node.steps = node.parent.steps + 1 if node.parent else 0
+        self.frontier.append(node)
+        print("Added Node:", node.state, "with steps:", node.steps)
+        print("Current Frontier:", [n.state for n in self.frontier])
+
+    def remove(self):
+        if self.empty():
+            raise Exception("empty frontier")
+        else:
+            #output all the nodes in the frontier and calculate their Manhattan distances
+            print("Frontier States:", [node.state for node in self.frontier])
+            print("Manhattan Distances:", [self.cal_mahattan(node) for node in self.frontier])
+            print()
+            min_node = min(self.frontier, key=lambda node: self.cal_mahattan(node))
+            self.frontier.remove(min_node)
+            return min_node
 
 class Maze():
 
@@ -80,7 +124,6 @@ class Maze():
 
         self.solution = None
 
-
     def print(self):
         solution = self.solution[1] if self.solution is not None else None
         print()
@@ -98,6 +141,14 @@ class Maze():
                     print(" ", end="")
             print()
         print()
+
+        solution = self.solution[0] if self.solution is not None else None
+        steps = self.solution[2] if self.solution is not None else None
+        if solution is not None:
+            for action in solution:
+                print(action , end=" ")
+            for step in steps:
+                print(step, end=" ")
 
 
     def neighbors(self, state):
@@ -124,7 +175,11 @@ class Maze():
 
         # Initialize frontier to just the starting position
         start = Node(state=self.start, parent=None, action=None)
-        frontier = StackFrontier()
+
+        frontier = AstarsFrontier(self.goal)
+        #frontier = GreedFrontier(self.goal)
+        #frontier = QueueFrontier()
+        #frontier = StackFrontier()
         frontier.add(start)
 
         # Initialize an empty explored set
@@ -145,13 +200,16 @@ class Maze():
             if node.state == self.goal:
                 actions = []
                 cells = []
+                steps = []
                 while node.parent is not None:
                     actions.append(node.action)
                     cells.append(node.state)
+                    steps.append(node.steps)
                     node = node.parent
                 actions.reverse()
                 cells.reverse()
-                self.solution = (actions, cells)
+                steps.reverse()
+                self.solution = (actions, cells, steps)
                 return
 
             # Mark node as explored

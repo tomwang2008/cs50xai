@@ -105,29 +105,37 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be mines.
         """
-        raise NotImplementedError
+        if len(self.cells) == self.count and self.count != 0:
+            return self.cells
+        return set()
+       
 
     def known_safes(self):
         """
         Returns the set of all cells in self.cells known to be safe.
         """
-        raise NotImplementedError
+        if self.count == 0:
+            return self.cells
+        return set()
 
     def mark_mine(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
         """
-        raise NotImplementedError
+        if cell in self.cells:
+            self.cells.remove(cell)
+            self.count -= 1
+
 
     def mark_safe(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
-        raise NotImplementedError
-
-
+        if cell in self.cells:
+            self.cells.remove(cell)
+       
 class MinesweeperAI():
     """
     Minesweeper game player
@@ -182,7 +190,46 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
-        raise NotImplementedError
+        # Mark cell as move made and safe
+        self.moves_made.add(cell)
+        self.mark_safe(cell)
+
+        # Find all neighboring cells
+        neighbors = set()
+        for i in range(cell[0] - 1, cell[0] + 2):
+            for j in range(cell[1] - 1, cell[1] + 2):
+                if (i, j) == cell:
+                    continue
+                if 0 <= i < self.height and 0 <= j < self.width:
+                    neighbors.add((i, j))
+
+        # Create new sentence with remaining unknown neighbors
+        unknown_neighbors = neighbors - self.safes - self.mines
+        self.knowledge.append(Sentence(unknown_neighbors, count - len(neighbors & self.mines)))
+
+        # Check for new conclusions
+        # Check for new conclusions
+        for sentence in self.knowledge[:]:  # Create a copy of the list for iteration
+            # Make a copy of cells set before iteration
+            cells_to_check = sentence.cells.copy()
+            if len(cells_to_check) == sentence.count:
+                for cell in cells_to_check:
+                    self.mark_mine(cell)
+            if sentence.count == 0:
+                for cell in cells_to_check:
+                    self.mark_safe(cell)
+
+        # Infer new knowledge from subset relations
+        new_knowledge = []
+        for s1 in self.knowledge[:]:  # Create a copy for iteration
+            for s2 in self.knowledge[:]:  # Create a copy for iteration
+                if s1.cells and s2.cells and s1 != s2:
+                    if s1.cells.issubset(s2.cells):
+                        new_cells = s2.cells - s1.cells
+                        new_count = s2.count - s1.count
+                        new_knowledge.append(Sentence(new_cells, new_count))
+
+        self.knowledge.extend(new_knowledge)
 
     def make_safe_move(self):
         """
@@ -193,7 +240,11 @@ class MinesweeperAI():
         This function may use the knowledge in self.mines, self.safes
         and self.moves_made, but should not modify any of those values.
         """
-        raise NotImplementedError
+        # Look for safe moves that haven't been made yet
+        safe_moves = self.safes - self.moves_made
+        if safe_moves:
+            return safe_moves.pop()
+        return None
 
     def make_random_move(self):
         """
@@ -202,4 +253,13 @@ class MinesweeperAI():
             1) have not already been chosen, and
             2) are not known to be mines
         """
-        raise NotImplementedError
+        # Get all possible moves
+        all_moves = set((i, j) for i in range(self.height) for j in range(self.width))
+
+        # Remove mines and moves already made
+        available_moves = all_moves - self.moves_made - self.mines
+
+        # Return random move if any available, otherwise None
+        if available_moves:
+            return random.choice(list(available_moves))
+        return None

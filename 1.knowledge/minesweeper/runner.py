@@ -168,7 +168,7 @@ while True:
         mouse = pygame.mouse.get_pos()
         for i in range(HEIGHT):
             for j in range(WIDTH):
-                if cells[i][j].collidepoint(mouse) and (i, j) not in revealed:
+                  if cells[i][j].collidepoint(mouse) and (i, j) not in revealed:
                     if (i, j) in flags:
                         flags.remove((i, j))
                     else:

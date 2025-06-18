@@ -57,7 +57,21 @@ def transition_model(corpus, page, damping_factor):
     linked to by `page`. With probability `1 - damping_factor`, choose
     a link at random chosen from all pages in the corpus.
     """
-    raise NotImplementedError
+    n_pages = len(corpus)
+    probabilities = dict()
+
+    links = corpus[page]
+    if links:
+        for p in corpus:
+            probabilities[p] = (1 - damping_factor) / n_pages
+            if p in links:
+                probabilities[p] += damping_factor / len(links)
+    else:
+        # If no outgoing links, treat as linking to all pages
+        for p in corpus:
+            probabilities[p] = 1 / n_pages
+
+    return probabilities
 
 
 def sample_pagerank(corpus, damping_factor, n):
@@ -69,8 +83,19 @@ def sample_pagerank(corpus, damping_factor, n):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    page_counts = {page: 0 for page in corpus}
+    pages = list(corpus.keys())
+    current_page = random.choice(pages)
 
+    for _ in range(n):
+        page_counts[current_page] += 1
+        model = transition_model(corpus, current_page, damping_factor)
+        next_pages = list(model.keys())
+        probabilities = list(model.values())
+        current_page = random.choices(next_pages, weights=probabilities, k=1)[0]
+
+    pagerank = {page: count / n for page, count in page_counts.items()}
+    return pagerank
 
 def iterate_pagerank(corpus, damping_factor):
     """
@@ -81,8 +106,30 @@ def iterate_pagerank(corpus, damping_factor):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    N = len(corpus)
+    pagerank = {page: 1 / N for page in corpus}
+    convergence = False
+    threshold = 0.001
 
+    while not convergence:
+        new_pagerank = {}
+        for page in corpus:
+            total = 0
+            for possible_page in corpus:
+                # If possible_page has no links, treat as linking to all pages
+                links = corpus[possible_page] if corpus[possible_page] else set(corpus.keys())
+                if page in links:
+                    total += pagerank[possible_page] / len(links)
+            new_pagerank[page] = (1 - damping_factor) / N + damping_factor * total
+
+        # Check for convergence
+        convergence = all(abs(new_pagerank[page] - pagerank[page]) < threshold for page in pagerank)
+        pagerank = new_pagerank
+
+    # Normalize to ensure sum is 1
+    total_sum = sum(pagerank.values())
+    pagerank = {page: rank / total_sum for page, rank in pagerank.items()}
+    return pagerank
 
 if __name__ == "__main__":
     main()

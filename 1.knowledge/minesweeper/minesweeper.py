@@ -253,7 +253,7 @@ class MinesweeperAI():
             1) have not already been chosen, and
             2) are not known to be mines
         """
-        # Get all possible moves
+        # Get all possible movesx
         all_moves = set((i, j) for i in range(self.height) for j in range(self.width))
 
         # Remove mines and moves already made

@@ -130,6 +130,7 @@ def iterate_pagerank(corpus, damping_factor):
     total_sum = sum(pagerank.values())
     pagerank = {page: rank / total_sum for page, rank in pagerank.items()}
     return pagerank
+    
 
 if __name__ == "__main__":
     main()

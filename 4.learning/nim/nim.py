@@ -101,7 +101,8 @@ class NimAI():
         Return the Q-value for the state `state` and the action `action`.
         If no Q-value exists yet in `self.q`, return 0.
         """
-        raise NotImplementedError
+        
+        return self.q.get((tuple(state), action), 0)
 
     def update_q_value(self, state, action, old_q, reward, future_rewards):
         """
@@ -118,7 +119,10 @@ class NimAI():
         `alpha` is the learning rate, and `new value estimate`
         is the sum of the current reward and estimated future rewards.
         """
-        raise NotImplementedError
+        
+        new_value_estimate = reward + future_rewards
+        new_q = old_q + self.alpha * (new_value_estimate - old_q)
+        self.q[(tuple(state), action)] = new_q
 
     def best_future_reward(self, state):
         """
@@ -130,7 +134,16 @@ class NimAI():
         Q-value in `self.q`. If there are no available actions in
         `state`, return 0.
         """
-        raise NotImplementedError
+        # 获取当前状态下所有可能的动作
+        possible_actions = Nim.available_actions(state)
+
+        # 如果没有可行动作（即到达了终止状态），则未来奖励为0
+        if not possible_actions:
+            return 0
+
+        # 计算所有可能动作的Q值，并返回其中的最大值
+        q_values = [self.get_q_value(state, action) for action in possible_actions]
+        return max(q_values)
 
     def choose_action(self, state, epsilon=True):
         """
@@ -147,7 +160,17 @@ class NimAI():
         If multiple actions have the same Q-value, any of those
         options is an acceptable return value.
         """
-        raise NotImplementedError
+        # 获取所有可选动作
+        available_actions = Nim.available_actions(state)
+
+        # Epsilon-greedy 策略
+        if epsilon and random.random() < self.epsilon:
+            # 探索：随机选择一个动作
+            return random.choice(list(available_actions))
+        else:
+            # 利用：选择Q值最高的动作
+            # 使用 max 函数和 lambda 表达式可以高效地找到最佳动作
+            return max(available_actions, key=lambda action: self.get_q_value(state, action))
 
 
 def train(n):

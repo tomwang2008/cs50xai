@@ -62,7 +62,12 @@ def preprocess(sentence):
     and removing any word that does not contain at least one alphabetic
     character.
     """
-    raise NotImplementedError
+    # Tokenize the sentence and convert to lowercase
+    words = nltk.word_tokenize(sentence.lower())
+
+    # Filter out words that do not contain any alphabetic characters
+    processed_words = [word for word in words if any(c.isalpha() for c in word)]
+    return processed_words
 
 
 def np_chunk(tree):
@@ -72,7 +77,24 @@ def np_chunk(tree):
     whose label is "NP" that does not itself contain any other
     noun phrases as subtrees.
     """
-    raise NotImplementedError
+    chunks = []
+
+    # Iterate through all subtrees in the tree that are noun phrases
+    for subtree in tree.subtrees(filter=lambda t: t.label() == 'NP'):
+
+        # Check if this NP subtree contains any other NP subtrees within it.
+        contains_inner_np = False
+        # We iterate through all of the current subtree's own subtrees.
+        # If we find any NP that is not the subtree itself, it's not a chunk.
+        for inner_subtree in subtree.subtrees(filter=lambda t: t.label() == 'NP' and t is not subtree):
+            contains_inner_np = True
+            break
+
+        # If no inner NPs were found, this is a valid chunk.
+        if not contains_inner_np:
+            chunks.append(subtree)
+
+    return chunks
 
 
 if __name__ == "__main__":

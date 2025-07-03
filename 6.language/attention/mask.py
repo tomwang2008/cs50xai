@@ -45,9 +45,14 @@ def get_mask_token_index(mask_token_id, inputs):
     Return the index of the token with the specified `mask_token_id`, or
     `None` if not present in the `inputs`.
     """
-    # TODO: Implement this function
-    raise NotImplementedError
+    # Convert the tensor of token IDs to a Python list.
+    token_ids = inputs.input_ids[0].numpy().tolist()
 
+    # Find the index of the mask token, return None if not found.
+    try:
+        return token_ids.index(mask_token_id)
+    except ValueError:
+        return None
 
 
 def get_color_for_attention_score(attention_score):
@@ -55,9 +60,8 @@ def get_color_for_attention_score(attention_score):
     Return a tuple of three integers representing a shade of gray for the
     given `attention_score`. Each value should be in the range [0, 255].
     """
-    # TODO: Implement this function
-    raise NotImplementedError
-
+    gray_value = int(attention_score * 255)
+    return (gray_value, gray_value, gray_value)
 
 
 def visualize_attentions(tokens, attentions):
@@ -70,12 +74,17 @@ def visualize_attentions(tokens, attentions):
     include both the layer number (starting count from 1) and head number
     (starting count from 1).
     """
-    # TODO: Update this function to produce diagrams for all layers and heads.
+    # 动态地找到最后一层
+    last_layer_num = len(attentions) - 1
+    last_layer_attentions = attentions[last_layer_num]
+
+    # 计算该层所有头的平均注意力权重，以获得更全面的视图
+    # last_layer_attentions[0] 的形状是 (num_heads, seq_len, seq_len)
+    # 我们沿着 axis=0 (即“头”的维度) 取平均值
+    attention_weights = tf.reduce_mean(last_layer_attentions[0], axis=0)
+
     generate_diagram(
-        1,
-        1,
-        tokens,
-        attentions[0][0][0]
+        last_layer_num + 1, "Average", tokens, attention_weights
     )
 
 
@@ -126,7 +135,7 @@ def generate_diagram(layer_number, head_number, tokens, attention_weights):
             draw.rectangle((x, y, x + GRID_SIZE, y + GRID_SIZE), fill=color)
 
     # Save image
-    img.save(f"Attention_Layer{layer_number}_Head{head_number}.png")
+    img.save(f"Attention_Layer{layer_number}_Head_{head_number}.png")
 
 
 if __name__ == "__main__":
